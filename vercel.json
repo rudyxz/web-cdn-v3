@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/upload",
+      "destination": "/api/upload"
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://raw.githubusercontent.com/rudyxz/cdn-files/main/:path*"
+    }
+  ]
+}
