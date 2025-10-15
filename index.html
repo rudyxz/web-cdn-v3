@@ -1,1 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploader ke GitHub/Vercel</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; margin: 0; flex-direction: column; }
+        .container { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 90%; max-width: 400px; }
+        h1 { color: #333; text-align: center; margin-bottom: 20px; }
+        input[type="file"] { display: block; width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #e9ecef; word-wrap: break-word; min-height: 50px; }
+        #result a { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload File Saya</h1>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="files[]" required multiple>
+            <button type="submit" id="submitButton">Upload File</button>
+        </form>
+
+        <div id="result">
+            Status atau URL hasil akan muncul di sini.
+        </div>
+    </div>
+
+    <script>
+        // Endpoint yang dipetakan oleh Vercel
+        const UPLOAD_URL = '/api/upload'; 
+
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            const submitButton = document.getElementById('submitButton');
+            
+            resultDiv.innerHTML = 'Mengunggah... Mohon tunggu. ⏳';
+            submitButton.disabled = true;
+
+            const formData = new FormData();
+            // Menambahkan semua file dengan nama field: files[]
+            for (const file of fileInput.files) {
+                formData.append('files[]', file);
+            }
+
+            try {
+                const response = await fetch(UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const url = data.files[0].url; 
+                    resultDiv.innerHTML = `✅ Berhasil diupload! <br><br> URL: <a href="${url}" target="_blank">${url}</a>`;
+                } else {
+                    const errorMsg = data.error || 'Terjadi kesalahan pada server.';
+                    resultDiv.innerHTML = `❌ Gagal Upload. <br><br> Error: ${errorMsg}`;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Gagal Upload. <br><br> Error Jaringan: ${error.message}`;
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
 
