@@ -21,7 +21,7 @@ const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_RE
 function generateShortName(originalFilename) {
     const extension = path.extname(originalFilename);
     // Membuat nama file 8 karakter unik
-    const shortId = uuidv4().substring(0, 8); 
+    const shortId = uuidv4().substring(0, 5); 
     return `${shortId}${extension}`;
 }
 
