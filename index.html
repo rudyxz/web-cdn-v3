@@ -3,52 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uploader ke GitHub/Vercel</title>
+    <title>Upload media to Url</title> 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">    
+    <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@400&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; margin: 0; flex-direction: column; }
-        .container { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 90%; max-width: 400px; }
-        h1 { color: #333; text-align: center; margin-bottom: 20px; }
-        input[type="file"] { display: block; width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #0056b3; }
-        #result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #e9ecef; word-wrap: break-word; min-height: 50px; }
-        #result a { color: #007bff; }
+        body { font-family: 'Turret Road', monospace; font-weight: 400; background-color: #fff; color: #333; margin: 20px; font-size: 0.9rem; }
+        
+        div, p, button { margin: 0; padding: 0; line-height: 1.6; }
+        
+        .container > p, /* Untuk paragraf di luar blok utama */
+        #uploadContainer,
+        #fileName,
+        #message,
+        #resultContainer {
+            margin-bottom: 15px; 
+        }
+        
+        .container { max-width: 500px; }
+        
+        h1 { margin-bottom: 0px; text-align: center; }
+
+        button { 
+            font-family: 'Turret Road', monospace; 
+            font-size: 0.85rem; 
+            padding: 5px 15px; 
+            border: 1px solid #333; 
+            background-color: #fff; 
+            cursor: pointer; 
+            transition: background-color 0.3s ease; 
+        }
+        button:hover { background-color: #f0f0f0; }
+
+        /* Gaya Pesan dan Hasil */
+        #message { padding: 10px; border-radius: 4px; margin: 15px 0; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; } 
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        /* Menyembunyikan input file */
+        .hidden { display: none !important; }
+
+        #response-container { margin-top: 5px; }
+        #response-container a { word-break: break-all; color: #007bff; text-decoration: none; }
+        #response-container p { margin: 0; } 
+        
+        .result-url-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            margin-bottom: 0; 
+        }
+        
+        .copy-button { 
+            position: relative; 
+            padding: 2px; 
+            border: none; 
+            background: none; 
+            width: 26px; 
+            height: 26px; 
+            margin: 0; 
+            text-align: center;
+        }
+
+        .copy-button i { 
+            font-size: 18px; 
+            color: #333;
+            line-height: 22px; 
+        }
+        
+        .copy-button i.fa-check { 
+            color: green; 
+        }
+            
+        #loader { font-family: 'Turret Road', monospace; color: #333;  }
+
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Upload File Saya</h1>
+        <h1>rdyxcdn</h1> 
+        <p style=" text-align: center; ">upload a file (max 25mb). get a short url.</p>
+        <br>
         
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="file" id="fileInput" name="files[]" required multiple>
-            <button type="submit" id="submitButton">Upload File</button>
-        </form>
-
-        <div id="result">
-            Status atau URL hasil akan muncul di sini.
+        <p><b>via web:</b></p>
+        
+        <div id="uploadContainer">
+            <form id="uploadForm">
+                <input type="file" id="fileInput" name="files[]" required class="hidden">
+                <button type="button" id="selectFileButton">select file</button>
+            </form>
+            <p id="fileName"></p>
         </div>
-    </div>
+
+        <div id="resultContainer" style="display: none;">
+            <div id="message"></div>
+            <div id="response-container"></div>
+            <button id="resetButton" class="reset-button" style="margin-top: 15px;">reset</button>
+        </div>
+        
+        <p style="margin-top: 50px;"><b>supported files:</b><br>
+        almost any file type is accepted. this includes images, videos, audio, documents, and archives. potentially harmful files are treated as plain text.
+        </p>
+        
+        <p style="margin-top: 25px; text-align: center; font-size: 0.8rem;">creator: rudyx</p>
 
     <script>
-        // Endpoint yang dipetakan oleh Vercel
+        const uploadContainer = document.getElementById('uploadContainer');
+        const resultContainer = document.getElementById('resultContainer');
+        const fileInput = document.getElementById('fileInput');
+        const selectFileButton = document.getElementById('selectFileButton');
+        const resetButton = document.getElementById('resetButton');
+        const messageDiv = document.getElementById('message');
+        const responseContainer = document.getElementById('response-container');
+        const fileNameEl = document.getElementById('fileName');
+        
+        // Menggunakan endpoint dari kode awal (Vercel API mapping)
         const UPLOAD_URL = '/api/upload'; 
+        const MAX_FILE_SIZE = 26214400; // 25 MB
+        let loaderInterval;
 
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const fileInput = document.getElementById('fileInput');
-            const resultDiv = document.getElementById('result');
-            const submitButton = document.getElementById('submitButton');
-            
-            resultDiv.innerHTML = 'Mengunggah... Mohon tunggu. ⏳';
-            submitButton.disabled = true;
+        const copyIconHTML = '<i class="fas fa-copy icon-copy"></i>';
+        const checkIconHTML = '<i class="fas fa-check icon-check hidden"></i>';
 
-            const formData = new FormData();
-            // Menambahkan semua file dengan nama field: files[]
-            for (const file of fileInput.files) {
-                formData.append('files[]', file);
+        /**
+         * Menyalin teks ke clipboard dan menampilkan ikon cek sementara.
+         */
+        function copyToClipboard(text, buttonElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const copyIcon = buttonElement.querySelector('.icon-copy');
+                const checkIcon = buttonElement.querySelector('.icon-check');
+                copyIcon.classList.add('hidden');
+                checkIcon.classList.remove('hidden');
+                setTimeout(() => {
+                    copyIcon.classList.remove('hidden');
+                    checkIcon.classList.add('hidden');
+                }, 1500);
+            }).catch(err => {
+                console.error('Gagal menyalin:', err);
+                alert('Gagal menyalin URL.');
+            });
+        }
+        
+        /**
+         * Memulai animasi loader.
+         */
+        const startLoader = () => {
+            const frames = ['◼◻◻◻', '◼◼◻◻', '◼◼◼◻', '◼◼◼◼'];
+            let frameIndex = 0;
+            fileNameEl.innerHTML = '<p id="loader"></p>';
+            const loaderEl = document.getElementById('loader');
+            loaderInterval = setInterval(() => {
+                frameIndex = (frameIndex + 1) % frames.length;
+                if (loaderEl) { loaderEl.textContent = `uploading... ${frames[frameIndex]}`; }
+            }, 200);
+        };
+        
+        /**
+         * Menghentikan animasi loader.
+         */
+        const stopLoader = () => { clearInterval(loaderInterval); };
+
+        /**
+         * Menampilkan hasil upload (sukses atau error).
+         * Data yang diharapkan: { url: string }
+         */
+        function showResult(isSuccess, data, errorMessage = '') {
+            stopLoader();
+            uploadContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+
+            if (isSuccess) {
+                const urlToCopy = data.url;
+                
+                messageDiv.innerHTML = 'success! ✅'; 
+                messageDiv.className = 'success';
+                responseContainer.innerHTML = `
+                    <div class="result-url-container">
+                        <p style="font-size: small;">Url : <a href="${urlToCopy}" target="_blank">${urlToCopy}</a></p>
+                        <button class="copy-button" onclick="copyToClipboard('${urlToCopy}', this)">
+                            ${copyIconHTML}
+                            ${checkIconHTML}
+                        </button>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `error: ${errorMessage} ❌`;
+                messageDiv.className = 'error';
+                responseContainer.innerHTML = '';
+            }
+        }
+        
+        /**
+         * Mereset antarmuka uploader.
+         */
+        function resetUploader() {
+            uploadContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+            messageDiv.innerHTML = '';
+            messageDiv.className = '';
+            responseContainer.innerHTML = '';
+            fileInput.value = ''; 
+            fileNameEl.textContent = ''; 
+        }
+        
+        // Memicu klik input file saat tombol "select file" diklik
+        selectFileButton.addEventListener('click', () => {
+             fileInput.click();
+        });
+
+        // Logika utama saat file dipilih
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                 fileNameEl.textContent = '';
+                 return;
+            }
+            
+            // Cek batas ukuran file (25 MB)
+            if (file.size > MAX_FILE_SIZE) { 
+                fileNameEl.innerHTML = `<p style="color: red; margin-top: 15px;">error: file is too large (max 25 mb).</p>`;
+                fileInput.value = '';
+                return;
             }
 
+            // Tampilkan nama file yang dipilih
+            let displayName = file.name;
+            if (displayName.length > 35) displayName = displayName.substring(0, 32) + '...';
+            fileNameEl.textContent = 'selected: ' + displayName;
+            
+            startLoader();
+            
+            const formData = new FormData();
+            // Menggunakan 'files[]' untuk kompatibilitas dengan endpoint Vercel
+            formData.append('files[]', file);
+            
             try {
                 const response = await fetch(UPLOAD_URL, {
                     method: 'POST',
@@ -57,21 +246,24 @@
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    const url = data.files[0].url; 
-                    resultDiv.innerHTML = `✅ Berhasil diupload! <br><br> URL: <a href="${url}" target="_blank">${url}</a>`;
+                // Cek status HTTP dan respons dari server
+                if (response.ok && data.files && data.files.length > 0) {
+                    showResult(true, { url: data.files[0].url });
                 } else {
-                    const errorMsg = data.error || 'Terjadi kesalahan pada server.';
-                    resultDiv.innerHTML = `❌ Gagal Upload. <br><br> Error: ${errorMsg}`;
+                    // Ambil pesan error dari respons JSON, atau berikan pesan default
+                    const errorMsg = data.error || data.message || 'Gagal mengunggah file.';
+                    throw new Error(errorMsg);
                 }
-
             } catch (error) {
-                resultDiv.innerHTML = `❌ Gagal Upload. <br><br> Error Jaringan: ${error.message}`;
-            } finally {
-                submitButton.disabled = false;
+                // Tangani error jaringan atau error yang di-throw
+                showResult(false, null, error.message);
             }
         });
+        
+        resetButton.addEventListener('click', resetUploader);
+
+        // Inisialisasi tampilan
+        resetUploader();
     </script>
 </body>
 </html>
-
